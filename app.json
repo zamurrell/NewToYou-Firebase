@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "New To You",
+    "slug": "NewToYou",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./app/assets/icon.png",
+    "splash": {
+      "image": "./app/assets/logoSplash.jpg",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "description": "A marketplace to buy things that are New To You! Clone of LetGo",
+    "githubUrl": "https://github.com/zamurrell/NewToYou-React-Native",
+    "notification": {
+      "iosDisplayInForeground": true
+    }
+  }
+}
