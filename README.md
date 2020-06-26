@@ -13,7 +13,8 @@ This Project uses a number of open source projects to work properly:
 
 - [React-Native] - React Native is a JavaScript Library from Facebook for creating native apps for iOS and Android
 - [Expo] - Tool to build, deploy, and share React Native apps
-- [Node.js] - evented I/O for the backend
+
+This project also utilizes Google's [Firebase Cloud Firestore](https://firebase.google.com/) database and storage.
 
 ### Installation
 
