@@ -11,7 +11,7 @@ import {
 import * as Yup from "yup";
 import * as ImagePicker from "expo-image-picker";
 import * as Permissions from "expo-permissions";
-import uuid from "uuid";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import {
   AppForm as Form,
@@ -28,6 +28,8 @@ import UploadScreen from "../screens/UploadScreen";
 import { firebase } from "../config/firebaseConfig";
 import colors from "../config/colors";
 import defaultStyles from "../config/styles";
+import ActivityIndicator from "../components/ActivityIndicator";
+import routes from "../navigation/routes";
 
 const validationSchema = Yup.object().shape({
   title: Yup.string().required().min(1).label("Title"),
@@ -94,7 +96,7 @@ const categories = [
   },
 ];
 
-function ListingEditScreen() {
+function ListingEditScreen({ navigation }) {
   const location = useLocation();
   const [uploadVisible, setUploadVisible] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -133,7 +135,7 @@ function ListingEditScreen() {
     await Permissions.askAsync(Permissions.CAMERA);
     let pickerResult = await ImagePicker.launchImageLibraryAsync({
       allowsEditing: true,
-      aspect: [4, 3],
+      aspect: [3, 3],
     });
 
     setSelectedImage({ localUri: pickerResult.uri });
@@ -145,34 +147,38 @@ function ListingEditScreen() {
     try {
       setUploadVisible(true);
 
-      if (!pickerResult.cancelled) {
-        uploadUrl = await uploadImageAsync(pickerResult.uri, title);
-        finishPost(uploadUrl);
-      }
+      uploadUrl = await uploadImageAsync(
+        pickerResult.uri,
+        title.replace(/\s+/g, "")
+      );
+      finishPost(uploadUrl);
     } catch (e) {
       console.log(e);
       alert("Upload failed, sorry :(");
     } finally {
-      setUploadVisible(false);
-      // finishPost();
     }
   };
 
-  const finishPost = (url) => {
+  const finishPost = async (url) => {
     console.log("Title onPostPress: ", title.replace(/\s+/g, ""));
+    console.log("Image URL: ", url);
     const timestamp = firebase.firestore.FieldValue.serverTimestamp();
-    const data = {
-      price: price,
-      title: title,
-      description: description,
-      photo: [url],
-    };
-    listingRef.add(data).catch((error) => {
-      alert(error);
-    });
-    setTitle("");
-    setPrice("");
-    setDescription("");
+    listingRef
+      .doc(title)
+      .set({
+        price: price,
+        title: title,
+        description: description,
+        photo: [url],
+      })
+      .then(function () {
+        setTitle("");
+        setPrice("");
+        setDescription("");
+        setSelectedImage(null);
+        setUploadVisible(false);
+        navigation.navigate("Feed");
+      });
   };
 
   async function uploadImageAsync(uri, imageName) {
@@ -211,83 +217,99 @@ function ListingEditScreen() {
     }
   };
 
+  const handleImageDelete = () => {
+    Alert.alert("Delete", "Are you sure you want to delete this image?", [
+      { text: "Yes", onPress: () => setSelectedImage(null) },
+      { text: "No" },
+    ]);
+  };
+
   return (
-    <Screen style={styles.container}>
-      <Form
-        initialValues={{
-          title: "",
-          price: "",
-          description: "",
-          category: null,
-          images: [],
-        }}
-        validationSchema={validationSchema}
-        onSubmit={onPostPress}
-      >
-        <UploadScreen
-          onDone={() => setUploadVisible(false)}
-          progress={progress}
-          visible={uploadVisible}
-        />
-        <TouchableOpacity style={styles.button} onPress={pickImage}>
-          <Text style={styles.text}>Choose Image</Text>
-        </TouchableOpacity>
-        {selectedImage && (
-          <Image
-            style={styles.thumbnail}
-            source={{ uri: selectedImage.localUri }}
+    <>
+      <ActivityIndicator visible={uploadVisible} />
+      <Screen style={styles.container}>
+        <Form
+          initialValues={{
+            title: "",
+            price: "",
+            description: "",
+            category: null,
+            images: [],
+          }}
+          validationSchema={validationSchema}
+          onSubmit={onPostPress}
+        >
+          <View style={{ display: "flex", flexDirection: "row" }}>
+            <TouchableOpacity style={styles.imageUploader} onPress={pickImage}>
+              <MaterialCommunityIcons
+                color={colors.mediumGray}
+                name="camera"
+                size={40}
+              />
+            </TouchableOpacity>
+            {selectedImage && (
+              <TouchableOpacity
+                style={{ borderRadius: 15, overflow: "hidden" }}
+                onPress={handleImageDelete}
+              >
+                <Image
+                  style={styles.thumbnail}
+                  source={{ uri: selectedImage.localUri }}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={[defaultStyles.text, { flex: 1 }]}
+              placeholderTextColor={colors.mediumGray}
+              autoCapitalize="none"
+              autoCorrect={false}
+              name="title"
+              placeholder="Title"
+              onChangeText={(text) => setTitle(text)}
+              value={title}
+            />
+          </View>
+          <View style={[styles.inputContainer, { width: "25%" }]}>
+            <TextInput
+              style={[defaultStyles.text, { flex: 1 }]}
+              placeholderTextColor={colors.mediumGray}
+              autoCapitalize="none"
+              autoCorrect={false}
+              name="price"
+              placeholder="Price"
+              onChangeText={(text) => setPrice(text)}
+              value={price}
+              keyboardType="numeric"
+            />
+          </View>
+          <Picker
+            items={categories}
+            name="category"
+            numberOfColumns={3}
+            placeholder="Category"
+            PickerItemComponent={CategoryPickerItem}
+            width="50%"
           />
-        )}
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={[defaultStyles.text, { flex: 1 }]}
-            placeholderTextColor={colors.mediumGray}
-            autoCapitalize="none"
-            autoCorrect={false}
-            name="title"
-            placeholder="Title"
-            onChangeText={(text) => setTitle(text)}
-            value={title}
-          />
-        </View>
-        <View style={[styles.inputContainer, { width: "25%" }]}>
-          <TextInput
-            style={[defaultStyles.text, { flex: 1 }]}
-            placeholderTextColor={colors.mediumGray}
-            autoCapitalize="none"
-            autoCorrect={false}
-            name="price"
-            placeholder="Price"
-            onChangeText={(text) => setPrice(text)}
-            value={price}
-            keyboardType="numeric"
-          />
-        </View>
-        <Picker
-          items={categories}
-          name="category"
-          numberOfColumns={3}
-          placeholder="Category"
-          PickerItemComponent={CategoryPickerItem}
-          width="50%"
-        />
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={[defaultStyles.text, { flex: 1 }]}
-            placeholderTextColor={colors.mediumGray}
-            autoCapitalize="none"
-            autoCorrect={false}
-            name="description"
-            placeholder="Description"
-            onChangeText={(text) => setDescription(text)}
-            value={description}
-          />
-        </View>
-        <TouchableOpacity style={styles.button} onPress={() => onPostPress()}>
-          <Text style={styles.text}>Post</Text>
-        </TouchableOpacity>
-      </Form>
-    </Screen>
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={[defaultStyles.text, { flex: 1 }]}
+              placeholderTextColor={colors.mediumGray}
+              autoCapitalize="none"
+              autoCorrect={false}
+              name="description"
+              placeholder="Description"
+              onChangeText={(text) => setDescription(text)}
+              value={description}
+            />
+          </View>
+          <TouchableOpacity style={styles.button} onPress={() => onPostPress()}>
+            <Text style={styles.text}>Post</Text>
+          </TouchableOpacity>
+        </Form>
+      </Screen>
+    </>
   );
 }
 
@@ -324,7 +346,17 @@ const styles = StyleSheet.create({
   thumbnail: {
     width: 100,
     height: 100,
-    resizeMode: "contain",
+    resizeMode: "cover",
+  },
+  imageUploader: {
+    backgroundColor: colors.lightGray,
+    borderRadius: 15,
+    justifyContent: "center",
+    alignItems: "center",
+    height: 100,
+    width: 100,
+    overflow: "hidden",
+    marginRight: 10,
   },
 });
 export default ListingEditScreen;

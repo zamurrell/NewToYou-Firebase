@@ -19,7 +19,7 @@ function ListingDetailsScreen({ route }) {
         style={styles.image}
         tint="light"
         preview={{ uri: listing.photo[0] }}
-        uri={listing.photo[0].url}
+        uri={listing.photo[0]}
       />
       <View style={styles.detailsContainer}>
         <AppText style={styles.title}>{listing.title}</AppText>
